@@ -70,14 +70,18 @@
         #object-table th {
             background-color: #f2f2f2;
         }
-        #image-text {
-            width: 300px;
-            height: 200px;
-            resize: vertical;
+        /* New style for response image container */
+        #response-image-container {
+            width: 100%;
             margin-top: 20px;
+            text-align: center;
         }
-        #copy-button {
-            margin-top: 10px;
+        /* New style for response image */
+        #response-image {
+            max-width: 100%;
+            max-height: 300px;
+            width: auto;
+            height: auto;
         }
         #class-list {
             width: 300px;
@@ -120,8 +124,10 @@
                 </tbody>
             </table>
         </div>
-        <textarea id="image-text" readonly></textarea>
-        <button id="copy-button">Copy to Clipboard</button>
+        <!-- Replace the text area and copy button with another image field -->
+        <div id="response-image-container">
+            <img id="response-image" src="#" alt="Detected Objects">
+        </div>
         <ul id="class-list">
             <!-- Hardcoded items will be inserted here -->
         </ul>
@@ -184,17 +190,13 @@
                         `;
                     });
 
-                    document.getElementById('image-text').value = data.image;
+                    // Set response image source
+                    var responseImage = document.getElementById('response-image');
+                    responseImage.src = 'data:image/png;base64,' + data.image;
                 })
                 .catch(error => {
                     console.error('Error:', error);
                 });
-            });
-
-            document.getElementById('copy-button').addEventListener('click', function() {
-                var textarea = document.getElementById('image-text');
-                textarea.select();
-                document.execCommand('copy');
             });
         });
     </script>

@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify, render_template, url_for
+from flask import Flask, request, jsonify, render_template
 from PIL import Image
 import io
 import base64
 import onnxruntime as ort
 import numpy as np
-import json
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 app = Flask(__name__, template_folder='template')
 
@@ -29,7 +30,6 @@ yolo_classes = [
 def root():
     """Root endpoint"""
     return render_template('index.html')
-    # return 'hi'
 
 @app.route("/detect/<label>", methods=["POST"])
 @app.route("/detect/", methods=["POST"])
@@ -59,14 +59,55 @@ def detect(label=None):
     image_content = file.stream.read()
     objects = detect_objects(file.stream, label)
 
-    # Result is prepared in a dictionary to be converted to JSON format
+    # Plot bounding boxes on the original image
+    img = Image.open(io.BytesIO(image_content))
+    plotted_img = plot_boxes_on_image(img, objects)
+
+    # Convert the plotted image to UTF-8 format
+    buffered = io.BytesIO()
+    plotted_img.save(buffered, format="PNG")
     response_data = {
-        "image": base64.b64encode(image_content).decode("utf-8"),
+        "image": base64.b64encode(buffered.getvalue()).decode("utf-8"),
         "objects": objects,
         "count": len(objects),
     }
 
     return jsonify(response_data)
+
+def plot_boxes_on_image(image, objects):
+    """
+    Plot bounding boxes on the original image.
+    
+    Args:
+        image (PIL.Image): Original image.
+        objects (list): Detected objects information.
+        
+    Returns:
+        PIL.Image: Image with bounding boxes plotted.
+    """
+    # Create figure and axes
+    fig, ax = plt.subplots(1)
+    ax.imshow(image)
+
+    # Plot each bounding box
+    for obj in objects:
+        x, y, width, height = obj['x'], obj['y'], obj['width'], obj['height']
+        rect = patches.Rectangle((x, y), width, height, linewidth=2, edgecolor='r', facecolor='none')
+        ax.add_patch(rect)
+
+    # Convert plot to image
+    ax.axis('off')
+    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    plt.margins(0, 0)
+    plt.gca().xaxis.set_major_locator(plt.NullLocator())
+    plt.gca().yaxis.set_major_locator(plt.NullLocator())
+    plt.draw()
+    plt.close()
+    img_buffer = io.BytesIO()
+    fig.savefig(img_buffer, format='png')
+    img_buffer.seek(0)
+    img = Image.open(img_buffer)
+    return img
     
 def detect_objects(buf, label):
     """
